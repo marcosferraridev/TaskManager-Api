@@ -6,7 +6,7 @@ public class TaskItem
 
     public string Title { get; set; }
 
-    public string? Description { get; set; }
+    public string? Description { get; set; } // ? indica que a propriedade pode ser nula
 
     public bool Completed { get; set; }
 }
