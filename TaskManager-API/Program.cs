@@ -5,7 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+// Configura o contexto do banco de dados para usar SQLite, especificando o caminho do arquivo de banco de dados como "tasks.db"
+builder.Services.AddDbContext<AppDbContext>(options => 
     options.UseSqlite("Data Source=tasks.db"));
 
 builder.Services.AddControllers();

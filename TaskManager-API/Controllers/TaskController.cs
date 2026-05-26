@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TaskManagerAPI.Models;
+using TaskManagerAPI.Data;
 
 namespace TaskManagerAPI.Controllers;
 
@@ -8,12 +9,17 @@ namespace TaskManagerAPI.Controllers;
 
 public class TaskController : ControllerBase
 {
-    private static List<TaskItem> tasks = new();
+    private readonly AppDbContext _context; // campo para acessar o contexto do banco de dados
+
+    public TaskController(AppDbContext context) // construtor para injetar o contexto do banco de dados
+    {
+        _context = context;
+    }
 
     [HttpGet] // acesso via GET para obter a lista de tarefas
     public IActionResult GetAction()
     {
-        return Ok(tasks); // retorna o status 200 OK e a lista de tarefas no corpo da resposta
+        return Ok(_context.Tasks.ToList()); // retorna o status 200 OK e a lista de tarefas convertida para uma lista em memória usando ToList()
     }
 
     [HttpPost] // acesso via POST para criar uma nova tarefa
@@ -31,7 +37,8 @@ public class TaskController : ControllerBase
         {
             return BadRequest("A descrição da tarefa deve ter no máximo 600 caracteres!");
         }
-        tasks.Add(task);
+        _context.Tasks.Add(task);
+        _context.SaveChanges();
         return Created("", task); // retorna o status 201 Created e a tarefa criada
     }
 
@@ -40,7 +47,7 @@ public class TaskController : ControllerBase
     {
         // firstOrDefault retorna a primeira tarefa que corresponde ao ID ou null se não encontrar
         // t é a variável de iteração que representa cada tarefa na lista tasks
-        var task = tasks.FirstOrDefault(t => t.Id == id);
+        var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
         if (task == null) // verificação
         {
@@ -52,13 +59,14 @@ public class TaskController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult DeleteTaskById(int id) // logica parecida com a de GetTaskById, mas para deletar a tarefa
     {
-        var task = tasks.FirstOrDefault(t => t.Id == id);
+        var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
         if (task == null)
         {
             return NotFound();
         }
-        tasks.Remove(task);
+        _context.Tasks.Remove(task);
+        _context.SaveChanges();
         return NoContent(); // retorna o status 204 No Content para indicar que a tarefa foi deletada com sucesso, sem retornar nenhum conteúdo na resposta
 
     }
@@ -66,7 +74,7 @@ public class TaskController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult UpdateTaskById(int id, TaskItem updatedTask) // logica parecida com a de GetTaskById, mas para atualizar a tarefa
     {
-        var task = tasks.FirstOrDefault(t => t.Id == id);
+        var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
         if (task == null)
         {
@@ -84,6 +92,7 @@ public class TaskController : ControllerBase
         task.Completed = updatedTask.Completed;
         task.Description = updatedTask.Description;
         // o id normalmente não se altera por ser unico
+        _context.SaveChanges();
         return NoContent();
     }
 }
