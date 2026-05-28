@@ -4,60 +4,77 @@ using TaskManagerAPI.Data;
 
 namespace TaskManagerAPI.Controllers;
 
+// funcionalidade de API Controller, que inclui validação automática de modelo e formatação de resposta
 [ApiController]
-[Route("tasks")] // rota para acessar as tarefas
+// rota base para acessar os endpoints do controlador, ex: /tasks para obter a lista de tarefas
+[Route("tasks")] 
 
 public class TaskController : ControllerBase
 {
-    private readonly AppDbContext _context; // campo para acessar o contexto do banco de dados
+    // campo para acessar o contexto do banco de dados; readonly para garantir que só possa ser atribuído no construtor
+    private readonly AppDbContext _context; 
 
-    public TaskController(AppDbContext context) // construtor para injetar o contexto do banco de dados
+    // construtor para injetar o contexto do banco de dados
+    public TaskController(AppDbContext context) 
     {
         _context = context;
     }
 
-    [HttpGet] // acesso via GET para obter a lista de tarefas
-    public IActionResult GetAction()
+    [HttpGet] 
+    public IActionResult GetTasks()
     {
-        return Ok(_context.Tasks.ToList()); // retorna o status 200 OK e a lista de tarefas convertida para uma lista em memória usando ToList()
+        // retorna o status 200 OK e a lista de tarefas convertida para uma lista em memória usando ToList()
+        return Ok(_context.Tasks.ToList()); 
     }
 
-    [HttpPost] // acesso via POST para criar uma nova tarefa
+    [HttpPost] 
     public IActionResult CreateTask(TaskItem task)
     {
         if (task == null)
         {
+            // retorna o status 400 Bad Request 
             return BadRequest("A tarefa não pode ser nula!");
         }
+
         if (string.IsNullOrWhiteSpace(task.Title))
         {
             return BadRequest("É necessário informar o título da tarefa!");
         }
-        if (task.Description?.Length > 600) // ?. só acessa Length se Description não for nulo
+
+        // ?. só acessa Length se Description não for nulo
+        if (task.Description?.Length > 600) 
         {
             return BadRequest("A descrição da tarefa deve ter no máximo 600 caracteres!");
         }
+
+        // toda nova tarefa inicia como não concluída
+        task.Completed = false; 
+
         _context.Tasks.Add(task);
         _context.SaveChanges();
-        return Created("", task); // retorna o status 201 Created e a tarefa criada
+
+        // retorna o status 201 Created e a tarefa criada
+        return Created("", task); 
     }
 
-    [HttpGet("{id}")]  // acesso via GET para obter uma tarefa específica pelo ID, ex: /tasks/{id}
+    // acesso via GET para obter uma tarefa específica pelo ID, ex: /tasks/{id}
+    [HttpGet("{id}")]  
     public IActionResult GetTaskById(int id)
     {
         // firstOrDefault retorna a primeira tarefa que corresponde ao ID ou null se não encontrar
-        // t é a variável de iteração que representa cada tarefa na lista tasks
         var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
-        if (task == null) // verificação
+        if (task == null) 
         {
+            // retorna o status 404 Not Found
             return NotFound();
         }
+
         return Ok(task);
     }
 
     [HttpDelete("{id}")]
-    public IActionResult DeleteTaskById(int id) // logica parecida com a de GetTaskById, mas para deletar a tarefa
+    public IActionResult DeleteTaskById(int id) 
     {
         var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
@@ -65,14 +82,17 @@ public class TaskController : ControllerBase
         {
             return NotFound();
         }
+
         _context.Tasks.Remove(task);
         _context.SaveChanges();
-        return NoContent(); // retorna o status 204 No Content para indicar que a tarefa foi deletada com sucesso, sem retornar nenhum conteúdo na resposta
+
+        // retorna o status 204 No Content para indicar que a tarefa foi deletada com sucesso, sem retornar um corpo de resposta
+        return NoContent(); 
 
     }
 
     [HttpPut("{id}")]
-    public IActionResult UpdateTaskById(int id, TaskItem updatedTask) // logica parecida com a de GetTaskById, mas para atualizar a tarefa
+    public IActionResult UpdateTaskById(int id, TaskItem updatedTask) 
     {
         var task = _context.Tasks.FirstOrDefault(t => t.Id == id);
 
@@ -80,19 +100,23 @@ public class TaskController : ControllerBase
         {
             return NotFound();
         }
+
         if (String.IsNullOrWhiteSpace(updatedTask.Title))
         {
             return BadRequest("É necessário informar o título da tarefa!");
         }
+
         if (updatedTask.Description?.Length > 600)
         {
             return BadRequest("A descrição da tarefa deve ter no máximo 600 caracteres!");
         }
+
         task.Title = updatedTask.Title;
         task.Completed = updatedTask.Completed;
         task.Description = updatedTask.Description;
-        // o id normalmente não se altera por ser unico
+        // o id não é atualizado para manter a integridade do banco de dados
         _context.SaveChanges();
+
         return NoContent();
     }
 }
